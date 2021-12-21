@@ -29,7 +29,7 @@ namespace Vibrator_Controller {
             Target = target; 
             Command = command; 
         }
-        public VibratorControllerMessage(string target, Commands command, Toy toy) { 
+        public VibratorControllerMessage(string target, Commands command, Toys toy) { 
             Target = target;
 
             messages[toy.id + ":" + command] = new ToyMessage()
@@ -45,7 +45,7 @@ namespace Vibrator_Controller {
             Command = Commands.ToyUpdate;
 
         }
-        public VibratorControllerMessage(string target, Commands command, Toy toy, int strength) { 
+        public VibratorControllerMessage(string target, Commands command, Toys toy, int strength) { 
             Target = target;
             messages[toy.id +":"+ command] = new ToyMessage()
             {

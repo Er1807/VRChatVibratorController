@@ -17,7 +17,7 @@ namespace Vibrator_Controller {
 
         private static void SetupButtons() {
             VRCActionMenuPage.AddSubMenu(ActionMenuPage.Main, "Vibrator Controller", delegate {
-                foreach (Toy toy in Toy.allToys)
+                foreach (Toys toy in Toys.allToys)
                 {
                     try
                     {
@@ -31,7 +31,7 @@ namespace Vibrator_Controller {
             }, VibratorController.logo);
         }
 
-        private static void ToysMenu(Toy toy) {
+        private static void ToysMenu(Toys toy) {
             switch (toy.name) {
                 case "Edge":
                     EdgeRadials(toy);
@@ -48,7 +48,7 @@ namespace Vibrator_Controller {
             }
         }
 
-        private static void VibrateRadial(Toy toy, string text = "") {
+        private static void VibrateRadial(Toys toy, string text = "") {
             CustomSubMenu.AddRadialPuppet(text, f => {
                 int roundedPercent = (int)Math.Round(f * 100);
                 toy.setSpeed(roundedPercent / (100/toy.maxSpeed)); //0-10
@@ -57,7 +57,7 @@ namespace Vibrator_Controller {
 
         
 
-        private static void EdgeRadials(Toy toy) {
+        private static void EdgeRadials(Toys toy) {
             VibrateRadial(toy, toy.name + " 2");
 
             CustomSubMenu.AddRadialPuppet(toy.name + " 1", f => {
@@ -66,21 +66,19 @@ namespace Vibrator_Controller {
             }, ((float)toy.lastEdgeSpeed) / toy.maxSpeed2, toy.GetTexture());
         }
 
-        private static void MaxRadials(Toy toy) {
+        private static void MaxRadials(Toys toy) {
             VibrateRadial(toy, toy.name + " Vibration");
 
             CustomSubMenu.AddRadialPuppet($"{toy.name} Contraction", f => {
                 int contractionLevel = (int)Math.Round(f * 100) / (100 / toy.maxLinear);
-                if (toy.lastContraction != contractionLevel) {
-                    toy.setContraction(contractionLevel);
-                }
+                toy.setContraction(contractionLevel);
             }, ((float)toy.lastSpeed / toy.maxSpeed), toy.GetTexture());
         }
 
-        private static void NoraRadials(Toy toy) {
+        private static void NoraRadials(Toys toy) {
             VibrateRadial(toy, toy.name + " Vibration");
 
-            CustomSubMenu.AddButton(toy.name + " Rotate", () => { toy.rotate(); }, toy.GetTexture());
+            CustomSubMenu.AddButton(toy.name + " Rotate", toy.rotate, toy.GetTexture());
         }
 
     }

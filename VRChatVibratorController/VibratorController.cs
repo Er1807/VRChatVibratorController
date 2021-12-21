@@ -174,7 +174,7 @@ namespace Vibrator_Controller {
         }
 
         private void onPlayerLeft(Player obj) {
-            foreach (Toy toy in Toy.remoteToys.Where(x=>x.Value.connectedTo == obj.prop_String_0).Select(x=>x.Value)) {
+            foreach (RemoteToy toy in Toys.remoteToys.Where(x=>x.Value.connectedTo == obj.prop_String_0).Select(x=>x.Value)) {
                 toy.disable();
             }
         }
@@ -214,7 +214,7 @@ namespace Vibrator_Controller {
             }));
 
             //Control all toys (vibrate only)
-            new Toy("All Toys", 1000, "all", 20, 0, 0, false, TabButton.SubMenu);
+            new AllControlToy(TabButton.SubMenu);
 
             //activate scroll
             TabButton.SubMenu.ToggleScrollbar(true);
@@ -234,30 +234,30 @@ namespace Vibrator_Controller {
             bpClient.ConnectAsync(new ButtplugEmbeddedConnectorOptions());
             bpClient.DeviceAdded += async(object aObj, DeviceAddedEventArgs args) => {
                 await AsyncUtils.YieldToMainThread();
-                new Toy(args.Device, TabButton.SubMenu);
+                new ButtplugToy(args.Device, TabButton.SubMenu);
             };
             
             bpClient.DeviceRemoved += async(object aObj, DeviceRemovedEventArgs args) => {
                 await AsyncUtils.YieldToMainThread();
-                if (Toy.myToys.ContainsKey(args.Device.Index))
+                if (Toys.myToys.ContainsKey(args.Device.Index))
                 {
-                    Toy.myToys[args.Device.Index].disable();
+                    Toys.myToys[args.Device.Index].disable();
                 }
             };
 
             bpClient.ErrorReceived += async(object aObj, ButtplugExceptionEventArgs args) =>
             {
-                MelonLogger.Msg($"Buttplug Client recieved error: {args.Exception.Message}");
+                MelonLogger.Msg($"Buttplug Client received error: {args.Exception.Message}");
                 await AsyncUtils.YieldToMainThread();
 
-                buttplugError.SubtitleText = "Error occured";
+                buttplugError.SubtitleText = "Error occurred";
             };
         }
 
         public override void OnUpdate() {
             
 
-            foreach (Toy toy in Toy.allToys) {
+            foreach (Toys toy in Toys.allToys) {
                 if (toy.hand == Hand.shared || toy.hand == Hand.none || toy.hand == Hand.actionmenu) return;
                 
                 if (menuOpen()) return;
@@ -308,10 +308,10 @@ namespace Vibrator_Controller {
         {
             foreach (var toymessage in msg.messages.Select(x => x.Value))
             {
-                if (!Toy.myToys.ContainsKey(toymessage.ToyID))
+                if (!Toys.myToys.ContainsKey(toymessage.ToyID))
                     continue;
 
-                Toy toy = Toy.myToys[toymessage.ToyID];
+                Toys toy = Toys.myToys[toymessage.ToyID];
 
                 switch (toymessage.Command)
                 {
@@ -351,13 +351,13 @@ namespace Vibrator_Controller {
                     case Commands.AddToy:
 
                         MelonLogger.Msg($"Adding : {toy.ToyName} : {toy.ToyID}");
-                        new Toy(toy.ToyName, toy.ToyID, userID, toy.ToyMaxSpeed, toy.ToyMaxSpeed2, toy.ToyMaxLinear, toy.ToySupportsRotate, TabButton.SubMenu);
+                        new RemoteToy(toy.ToyName, toy.ToyID, userID, toy.ToyMaxSpeed, toy.ToyMaxSpeed2, toy.ToyMaxLinear, toy.ToySupportsRotate, TabButton.SubMenu);
 
                         break;
                     case Commands.RemoveToy:
 
-                        if (Toy.remoteToys.ContainsKey(toy.ToyID))
-                            Toy.remoteToys[toy.ToyID].disable();
+                        if (Toys.remoteToys.ContainsKey(toy.ToyID))
+                            Toys.remoteToys[toy.ToyID].disable();
                         break;
                 }
             }
@@ -367,7 +367,7 @@ namespace Vibrator_Controller {
         {
             MelonLogger.Msg("Control Client requested toys");
             VibratorControllerMessage messageToSend = null;
-            foreach (KeyValuePair<ulong, Toy> entry in Toy.myToys.Where(x => x.Value.hand == Hand.shared))
+            foreach (KeyValuePair<ulong, ButtplugToy> entry in Toys.myToys.Where(x => x.Value.hand == Hand.shared))
             {
                 entry.Value.connectedTo = userID;
                 if (messageToSend == null)
