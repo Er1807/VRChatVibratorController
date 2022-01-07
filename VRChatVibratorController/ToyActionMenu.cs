@@ -9,26 +9,26 @@ using ActionMenuApi.Api;
 
 namespace Vibrator_Controller {
     public class ToyActionMenu {
-        private MelonLogger.Instance LoggerInstance;
+        private MelonLogger.Instance _loggerInstance;
 
 
-        public ToyActionMenu(MelonLogger.Instance LoggerInstance)
+        public ToyActionMenu(MelonLogger.Instance loggerInstance)
         {
-            this.LoggerInstance = LoggerInstance;
+            _loggerInstance = loggerInstance;
             SetupButtons();
         }
 
         private void SetupButtons() {
             VRCActionMenuPage.AddSubMenu(ActionMenuPage.Main, "Vibrator Controller", delegate {
-                foreach (Toys toy in Toys.allToys)
+                foreach (Toys toy in Toys.AllToys)
                 {
                     try
                     {
-                        if (toy.isActive && toy.hand != Hand.shared) ToysMenu(toy);
+                        if (toy.isActive && toy.hand != Hand.Shared) ToysMenu(toy);
                     }
                     catch (Exception e)
                     {
-                        LoggerInstance.Warning($"Error with toy {toy.name}: " + e.Message);
+                        _loggerInstance.Warning($"Error with toy {toy.name}: " + e.Message);
                     }
                 }
             }, VibratorController.logo);
@@ -54,7 +54,7 @@ namespace Vibrator_Controller {
         private static void VibrateRadial(Toys toy, string text = "") {
             CustomSubMenu.AddRadialPuppet(text, f => {
                 int roundedPercent = (int)Math.Round(f * 100);
-                toy.setSpeed(roundedPercent / (100/toy.maxSpeed)); //0-10
+                toy.SetSpeed(roundedPercent / (100/toy.maxSpeed)); //0-10
             }, ((float)toy.lastSpeed) / toy.maxSpeed, toy.GetTexture());
         }
 
@@ -65,7 +65,7 @@ namespace Vibrator_Controller {
 
             CustomSubMenu.AddRadialPuppet(toy.name + " 1", f => {
                 int roundedPercent = (int)Math.Round(f * 100);
-                toy.setEdgeSpeed(roundedPercent / (100 / toy.maxSpeed2)); //0-10
+                toy.SetEdgeSpeed(roundedPercent / (100 / toy.maxSpeed2)); //0-10
             }, ((float)toy.lastEdgeSpeed) / toy.maxSpeed2, toy.GetTexture());
         }
 
@@ -74,14 +74,14 @@ namespace Vibrator_Controller {
 
             CustomSubMenu.AddRadialPuppet($"{toy.name} Contraction", f => {
                 int contractionLevel = (int)Math.Round(f * 100) / (100 / toy.maxLinear);
-                toy.setContraction(contractionLevel);
+                toy.SetContraction(contractionLevel);
             }, ((float)toy.lastSpeed / toy.maxSpeed), toy.GetTexture());
         }
 
         private static void NoraRadials(Toys toy) {
             VibrateRadial(toy, toy.name + " Vibration");
 
-            CustomSubMenu.AddButton(toy.name + " Rotate", toy.rotate, toy.GetTexture());
+            CustomSubMenu.AddButton(toy.name + " Rotate", toy.Rotate, toy.GetTexture());
         }
 
     }

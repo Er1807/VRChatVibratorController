@@ -12,32 +12,32 @@ using VRC;
 
 namespace Vibrator_Controller {
     public enum Hand {
-        none, shared, left, right, both, either, actionmenu
+        None, Shared, Left, Right, Both, Either, Actionmenu
     }
 
     public interface IToy
     {
-        void setSpeedInternal();
-        void setEdgeSpeedInternal();
-        void setContractionInternal();
-        void rotateInternal();
+        void SetSpeedInternal();
+        void SetEdgeSpeedInternal();
+        void SetContractionInternal();
+        void RotateInternal();
         void UpdateBatteryInternal();
-        void enableInternal();
-        void disableInternal();
-        void changeHandInternal();
+        void EnableInternal();
+        void DisableInternal();
+        void ChangeHandInternal();
 
     }
 
     public abstract class Toys : IToy
     {
-        public Toys(MelonLogger.Instance LoggerInstance)
+        public Toys(MelonLogger.Instance loggerInstance)
         {
-            this.LoggerInstance = LoggerInstance;
+            this.LoggerInstance = loggerInstance;
         }
 
-        internal static Dictionary<ulong, RemoteToy> remoteToys { get; set; } = new Dictionary<ulong, RemoteToy>();
-        internal static Dictionary<ulong, ButtplugToy> myToys { get; set; } = new Dictionary<ulong, ButtplugToy>();
-        internal static List<Toys> allToys => remoteToys.Select(x => x.Value as Toys).Union(myToys.Select(x => x.Value as Toys)).ToList();
+        internal static Dictionary<ulong, RemoteToy> RemoteToys { get; set; } = new Dictionary<ulong, RemoteToy>();
+        internal static Dictionary<ulong, ButtplugToy> MyToys { get; set; } = new Dictionary<ulong, ButtplugToy>();
+        internal static List<Toys> AllToys => RemoteToys.Select(x => x.Value as Toys).Union(MyToys.Select(x => x.Value as Toys)).ToList();
 
         public MelonLogger.Instance LoggerInstance { get; }
 
@@ -49,27 +49,27 @@ namespace Vibrator_Controller {
         internal ButtonGroup toys;
         internal SubMenu menu;
 
-        internal Hand hand = Hand.none;
+        internal Hand hand = Hand.None;
         internal string name;
         internal ulong id;
         internal bool isActive = true;
 
         internal int lastSpeed = 0, lastEdgeSpeed = 0, lastContraction = 0;
 
-        internal bool supportsRotate = false, supportsLinear = false, supportsTwoVibrators = false, supportsBatteryLVL = false;
+        internal bool supportsRotate = false, supportsLinear = false, supportsTwoVibrators = false, supportsBatteryLvl = false;
         internal int maxSpeed = 20, maxSpeed2 = -1, maxLinear = -1;
         internal double battery = -1;
         internal bool clockwise = false;
 
-        public void createMenu()
+        public void CreateMenu()
         {
             toys = new ButtonGroup("Toy" + id, name);
             int step = (int)(maxSpeed * ((float)VibratorController.buttonStep / 100));
 
 
-            changeMode = new SingleButton(changeHandInternal, VibratorController.CreateSpriteFromTexture2D(GetTexture()), $"Mode\n{hand}", "mode", "Change Mode");
-            inc = new SingleButton(() => { if (lastSpeed + step <= maxSpeed) setSpeed(lastSpeed + step); }, VibratorController.CreateSpriteFromTexture2D(GetTexture()), "Inc", "inc", "Increment Speed");
-            dec = new SingleButton(() => { if (lastSpeed - step >= 0) setSpeed(lastSpeed - step); }, VibratorController.CreateSpriteFromTexture2D(GetTexture()), "Dec", "dec", "Decrement Speed");
+            changeMode = new SingleButton(ChangeHandInternal, VibratorController.CreateSpriteFromTexture2D(GetTexture()), $"Mode\n{hand}", "mode", "Change Mode");
+            inc = new SingleButton(() => { if (lastSpeed + step <= maxSpeed) SetSpeed(lastSpeed + step); }, VibratorController.CreateSpriteFromTexture2D(GetTexture()), "Inc", "inc", "Increment Speed");
+            dec = new SingleButton(() => { if (lastSpeed - step >= 0) SetSpeed(lastSpeed - step); }, VibratorController.CreateSpriteFromTexture2D(GetTexture()), "Dec", "dec", "Decrement Speed");
             label = new Label($"Current Speed: {lastSpeed}", "Battery not available", "BatteryStatus");
 
             label.TextComponent.fontSize = 24;
@@ -96,23 +96,23 @@ namespace Vibrator_Controller {
 
         }
 
-        public Texture2D GetTexture() => VibratorController.toy_icons.ContainsKey(name) ? VibratorController.toy_icons[name] : VibratorController.logo;
+        public Texture2D GetTexture() => VibratorController.toyIcons.ContainsKey(name) ? VibratorController.toyIcons[name] : VibratorController.logo;
 
-        public void disable()
+        public void Disable()
         {
             if (isActive)
             {
                 isActive = false;
                 LoggerInstance.Msg("Disabled toy: " + name);
-                hand = Hand.none;
+                hand = Hand.None;
                 toys.rectTransform.gameObject.active = false;
                 toys.Header.gameObject.active = false;
                 
-                disableInternal();
+                DisableInternal();
             }
         }
 
-        public void enable()
+        public void Enable()
         {
             if (!isActive)
             {
@@ -120,52 +120,52 @@ namespace Vibrator_Controller {
                 toys.rectTransform.gameObject.active = true;
                 toys.Header.gameObject.active = true;
 
-                enableInternal();
+                EnableInternal();
 
                 
                 LoggerInstance.Msg("Enabled toy: " + name);
             }
         }
 
-        public void setSpeed(int speed)
+        public void SetSpeed(int speed)
         {
             if (speed != lastSpeed)
             {
                 lastSpeed = speed;
                 label.Text = $"Current Speed: {speed}";
 
-                setSpeedInternal();
+                SetSpeedInternal();
             }
         }
-        public void setEdgeSpeed(int speed)
+        public void SetEdgeSpeed(int speed)
         {
             if (speed != lastEdgeSpeed)
             {
                 lastEdgeSpeed = speed;
-                setEdgeSpeedInternal();
+                SetEdgeSpeedInternal();
             }
         }
-        public void setContraction(int speed)
+        public void SetContraction(int speed)
         {
             if (lastContraction != speed)
             {
                 lastContraction = speed;
-                setContractionInternal();
+                SetContractionInternal();
             }
         }
-        public void rotate()
+        public void Rotate()
         {
-            rotateInternal();
+            RotateInternal();
         }
 
-        public abstract void disableInternal();
-        public abstract void enableInternal();
-        public abstract void setContractionInternal();
-        public abstract void setEdgeSpeedInternal();
-        public abstract void setSpeedInternal();
-        public abstract void rotateInternal();
+        public abstract void DisableInternal();
+        public abstract void EnableInternal();
+        public abstract void SetContractionInternal();
+        public abstract void SetEdgeSpeedInternal();
+        public abstract void SetSpeedInternal();
+        public abstract void RotateInternal();
         public abstract void UpdateBatteryInternal();
-        public abstract void changeHandInternal();
+        public abstract void ChangeHandInternal();
     }
 
     public class ButtplugToy : Toys
@@ -174,29 +174,29 @@ namespace Vibrator_Controller {
         public string connectedTo;
         public ButtplugClientDevice device;
 
-        internal ButtplugToy(ButtplugClientDevice device, SubMenu menu, MelonLogger.Instance LoggerInstance) : base(LoggerInstance)
+        internal ButtplugToy(ButtplugClientDevice device, SubMenu menu, MelonLogger.Instance loggerInstance) : base(loggerInstance)
         {
             this.menu = menu;
             id = (device.Index + (ulong)Player.prop_Player_0.prop_String_0.GetHashCode()) % long.MaxValue;
-            hand = Hand.shared;
+            hand = Hand.Shared;
             name = device.Name;
             this.device = device;
 
             //remove company name
             if (name.Split(' ').Length > 1) name = name.Split(' ')[1];
 
-            if (myToys.ContainsKey(id))
+            if (MyToys.ContainsKey(id))
             {
-                LoggerInstance.Msg("Device reconnected: " + name + " [" + id + "]");
-                myToys[id].name = name; //id should be uniquie but just to be sure
-                myToys[id].device = device;
-                myToys[id].enable();
+                loggerInstance.Msg("Device reconnected: " + name + " [" + id + "]");
+                MyToys[id].name = name; //id should be uniquie but just to be sure
+                MyToys[id].device = device;
+                MyToys[id].Enable();
                 return;
             }
 
 
 
-            LoggerInstance.Msg("Device connected: " + name + " [" + id + "]");
+            loggerInstance.Msg("Device connected: " + name + " [" + id + "]");
 
             if (device.AllowedMessages.ContainsKey(ServerMessage.Types.MessageAttributeType.LinearCmd))
                 supportsLinear = true;
@@ -207,25 +207,25 @@ namespace Vibrator_Controller {
 
             if (device.AllowedMessages.ContainsKey(ServerMessage.Types.MessageAttributeType.BatteryLevelCmd))
             {
-                supportsBatteryLVL = true;
+                supportsBatteryLvl = true;
                 UpdateBatteryInternal();
 
             }
 
             //prints info about the device
             foreach (KeyValuePair<ServerMessage.Types.MessageAttributeType, ButtplugMessageAttributes> entry in device.AllowedMessages)
-                LoggerInstance.Msg("[" + id + "] Allowed Message: " + entry.Key);
+                loggerInstance.Msg("[" + id + "] Allowed Message: " + entry.Key);
 
             if (device.AllowedMessages.ContainsKey(ServerMessage.Types.MessageAttributeType.VibrateCmd))
             {
                 ButtplugMessageAttributes attributes = device.AllowedMessages[ServerMessage.Types.MessageAttributeType.VibrateCmd];
 
                 if (attributes.ActuatorType != null && attributes.ActuatorType.Length > 0)
-                    LoggerInstance.Msg("[" + id + "] ActuatorType " + string.Join(", ", attributes.ActuatorType));
+                    loggerInstance.Msg("[" + id + "] ActuatorType " + string.Join(", ", attributes.ActuatorType));
 
                 if (attributes.StepCount != null && attributes.StepCount.Length > 0)
                 {
-                    LoggerInstance.Msg("[" + id + "] StepCount " + string.Join(", ", attributes.StepCount));
+                    loggerInstance.Msg("[" + id + "] StepCount " + string.Join(", ", attributes.StepCount));
                     maxSpeed = (int)attributes.StepCount[0];
                 }
                 if (attributes.StepCount != null && attributes.StepCount.Length == 2)
@@ -235,26 +235,26 @@ namespace Vibrator_Controller {
                 }
 
                 if (attributes.Endpoints != null && attributes.Endpoints.Length > 0)
-                    LoggerInstance.Msg("[" + id + "] Endpoints " + string.Join(", ", attributes.Endpoints));
+                    loggerInstance.Msg("[" + id + "] Endpoints " + string.Join(", ", attributes.Endpoints));
 
                 if (attributes.MaxDuration != null && attributes.MaxDuration.Length > 0)
-                    LoggerInstance.Msg("[" + id + "] MaxDuration " + string.Join(", ", attributes.MaxDuration));
+                    loggerInstance.Msg("[" + id + "] MaxDuration " + string.Join(", ", attributes.MaxDuration));
 
                 if (attributes.Patterns != null && attributes.Patterns.Length > 0)
                     foreach (string[] pattern in attributes.Patterns)
-                        LoggerInstance.Msg("[" + id + "] Pattern " + string.Join(", ", pattern));
+                        loggerInstance.Msg("[" + id + "] Pattern " + string.Join(", ", pattern));
             }
 
-            myToys.Add(id, this);
-            createMenu();
+            MyToys.Add(id, this);
+            CreateMenu();
 
-            if (hand == Hand.shared)
+            if (hand == Hand.Shared)
             {
-                VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.AddToy, this));
+                VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.AddToy, this));
             }
         }
 
-        public override void changeHandInternal()
+        public override void ChangeHandInternal()
         {
             if (!isActive) return;
 
@@ -262,43 +262,43 @@ namespace Vibrator_Controller {
             if (hand > Enum.GetValues(typeof(Hand)).Cast<Hand>().Max())
                 hand = 0;
             
-            if (hand == Hand.both && !supportsTwoVibrators)
+            if (hand == Hand.Both && !supportsTwoVibrators)
                 hand++;
 
-            if (!XRDevice.isPresent && (hand == Hand.both || hand == Hand.either || hand == Hand.left || hand == Hand.right))
-                hand = Hand.actionmenu;
+            if (!XRDevice.isPresent && (hand == Hand.Both || hand == Hand.Either || hand == Hand.Left || hand == Hand.Right))
+                hand = Hand.Actionmenu;
 
             
-            if (hand == Hand.shared)
+            if (hand == Hand.Shared)
             {
-                VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.AddToy, this));
+                VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.AddToy, this));
             }
             else
             {
-                VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.RemoveToy, this));
+                VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.RemoveToy, this));
             }
             
             changeMode.Text = "Mode\n" + hand;
         }
 
-        public override void disableInternal()
+        public override void DisableInternal()
         {
-            VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.RemoveToy, this));
+            VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.RemoveToy, this));
         }
 
-        public override void enableInternal()
+        public override void EnableInternal()
         {
-            if (supportsBatteryLVL)
+            if (supportsBatteryLvl)
             {
                 UpdateBatteryInternal();
             }
-            if (hand == Hand.shared)
+            if (hand == Hand.Shared)
             {
-                VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.AddToy, this));
+                VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.AddToy, this));
             }
         }
 
-        public override void rotateInternal()
+        public override void RotateInternal()
         {
             try
             {
@@ -311,7 +311,7 @@ namespace Vibrator_Controller {
             }
         }
 
-        public override void setContractionInternal()
+        public override void SetContractionInternal()
         {
             try
             {
@@ -324,7 +324,7 @@ namespace Vibrator_Controller {
             }
         }
 
-        public override void setEdgeSpeedInternal()
+        public override void SetEdgeSpeedInternal()
         {
             try
             {
@@ -336,7 +336,7 @@ namespace Vibrator_Controller {
             }
         }
 
-        public override void setSpeedInternal()
+        public override void SetSpeedInternal()
         {
             try
             {
@@ -375,22 +375,22 @@ namespace Vibrator_Controller {
     public class RemoteToy : Toys
     {
         public string connectedTo;
-        internal RemoteToy(string name, ulong id, string connectedTo, int maxSpeed, int maxSpeed2, int maxLinear, bool supportsRotate, SubMenu menu, MelonLogger.Instance LoggerInstance) : base(LoggerInstance)
+        internal RemoteToy(string name, ulong id, string connectedTo, int maxSpeed, int maxSpeed2, int maxLinear, bool supportsRotate, SubMenu menu, MelonLogger.Instance loggerInstance) : base(loggerInstance)
         {
             this.menu = menu;
-            if (remoteToys.ContainsKey(id))
+            if (RemoteToys.ContainsKey(id))
             {
-                LoggerInstance.Msg("Device reconnected: " + name + " [" + id + "]");
-                if (maxSpeed2 != -1) remoteToys[id].supportsTwoVibrators = true;
-                if (maxLinear != -1) remoteToys[id].supportsLinear = true;
-                remoteToys[id].name = name;
-                remoteToys[id].connectedTo = connectedTo;
-                remoteToys[id].supportsRotate = supportsRotate;
-                remoteToys[id].maxSpeed = maxSpeed;
-                remoteToys[id].maxSpeed2 = maxSpeed2;
-                remoteToys[id].maxLinear = maxLinear;
-                remoteToys[id].enable();
-                LoggerInstance.Msg($"Reconnected toy Name: {remoteToys[id].name}, ID: {remoteToys[id].id} Max Speed: {remoteToys[id].maxSpeed}" + (remoteToys[id].supportsTwoVibrators ? $", Max Speed 2: {remoteToys[id].maxSpeed2}" : "") + (remoteToys[id].supportsLinear ? $", Max Linear Speed: {remoteToys[id].maxLinear}" : "") + (remoteToys[id].supportsRotate ? $", Supports Rotation" : ""));
+                loggerInstance.Msg("Device reconnected: " + name + " [" + id + "]");
+                if (maxSpeed2 != -1) RemoteToys[id].supportsTwoVibrators = true;
+                if (maxLinear != -1) RemoteToys[id].supportsLinear = true;
+                RemoteToys[id].name = name;
+                RemoteToys[id].connectedTo = connectedTo;
+                RemoteToys[id].supportsRotate = supportsRotate;
+                RemoteToys[id].maxSpeed = maxSpeed;
+                RemoteToys[id].maxSpeed2 = maxSpeed2;
+                RemoteToys[id].maxLinear = maxLinear;
+                RemoteToys[id].Enable();
+                loggerInstance.Msg($"Reconnected toy Name: {RemoteToys[id].name}, ID: {RemoteToys[id].id} Max Speed: {RemoteToys[id].maxSpeed}" + (RemoteToys[id].supportsTwoVibrators ? $", Max Speed 2: {RemoteToys[id].maxSpeed2}" : "") + (RemoteToys[id].supportsLinear ? $", Max Linear Speed: {RemoteToys[id].maxLinear}" : "") + (RemoteToys[id].supportsRotate ? $", Supports Rotation" : ""));
                 return;
             }
 
@@ -405,14 +405,14 @@ namespace Vibrator_Controller {
             this.connectedTo = connectedTo;
             this.id = id;
 
-            LoggerInstance.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
+            loggerInstance.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
 
-            remoteToys.Add(id, this);
-            createMenu();
+            RemoteToys.Add(id, this);
+            CreateMenu();
 
         }
 
-        public override void changeHandInternal()
+        public override void ChangeHandInternal()
         {
             if (!isActive) return;
 
@@ -420,43 +420,43 @@ namespace Vibrator_Controller {
             if (hand > Enum.GetValues(typeof(Hand)).Cast<Hand>().Max())
                 hand = 0;
 
-            if (hand == Hand.shared)
+            if (hand == Hand.Shared)
                 hand++;
-            if (hand == Hand.both && !supportsTwoVibrators)
+            if (hand == Hand.Both && !supportsTwoVibrators)
                 hand++;
 
-            if (!XRDevice.isPresent && (hand == Hand.both || hand == Hand.either || hand == Hand.left || hand == Hand.right))
-                hand = Hand.actionmenu;
+            if (!XRDevice.isPresent && (hand == Hand.Both || hand == Hand.Either || hand == Hand.Left || hand == Hand.Right))
+                hand = Hand.Actionmenu;
             
             changeMode.Text = "Mode\n" + hand;
         }
 
-        public override void disableInternal()
+        public override void DisableInternal()
         {
         }
 
-        public override void enableInternal()
+        public override void EnableInternal()
         {
         }
 
-        public override void rotateInternal()
+        public override void RotateInternal()
         {
-            VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetRotate, this));
+            VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetRotate, this));
         }
 
-        public override void setContractionInternal()
+        public override void SetContractionInternal()
         {
-            VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetAir, this, lastContraction));
+            VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetAir, this, lastContraction));
         }
 
-        public override void setEdgeSpeedInternal()
+        public override void SetEdgeSpeedInternal()
         {
-            VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetSpeedEdge, this, lastEdgeSpeed));
+            VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetSpeedEdge, this, lastEdgeSpeed));
         }
 
-        public override void setSpeedInternal()
+        public override void SetSpeedInternal()
         {
-            VRCWSIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetSpeed, this, lastSpeed));
+            VrcwsIntegration.SendMessage(new VibratorControllerMessage(connectedTo, Commands.SetSpeed, this, lastSpeed));
         }
 
         public override void UpdateBatteryInternal()
@@ -466,7 +466,7 @@ namespace Vibrator_Controller {
 
     public class AllControlToy : Toys
     {
-        internal AllControlToy(SubMenu menu, MelonLogger.Instance LoggerInstance) : base(LoggerInstance)
+        internal AllControlToy(SubMenu menu, MelonLogger.Instance loggerInstance) : base(loggerInstance)
         {
             this.menu = menu;
             
@@ -475,17 +475,17 @@ namespace Vibrator_Controller {
             name = "All Toys";
             id = 1000;
 
-            LoggerInstance.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
+            loggerInstance.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
             
-            createMenu();
+            CreateMenu();
 
         }
 
-        public override void disableInternal()
+        public override void DisableInternal()
         {
         }
 
-        public override void changeHandInternal()
+        public override void ChangeHandInternal()
         {
         }
 
@@ -493,29 +493,29 @@ namespace Vibrator_Controller {
         {
         }
 
-        public override void enableInternal()
+        public override void EnableInternal()
         {
         }
 
-        public override void setContractionInternal()
+        public override void SetContractionInternal()
         {
         }
 
-        public override void rotateInternal()
+        public override void RotateInternal()
         {
         }
 
-        public override void setEdgeSpeedInternal()
+        public override void SetEdgeSpeedInternal()
         {
         }
 
-        public override void setSpeedInternal()
+        public override void SetSpeedInternal()
         {
-            foreach (var toy in allToys)
+            foreach (var toy in AllToys)
             {   
-                toy.setSpeed(lastSpeed);
+                toy.SetSpeed(lastSpeed);
                 if (toy.supportsTwoVibrators)
-                    toy.setEdgeSpeed(lastSpeed);
+                    toy.SetEdgeSpeed(lastSpeed);
             }
         }
     }

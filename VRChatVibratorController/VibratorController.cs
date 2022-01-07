@@ -25,26 +25,26 @@ using System.Runtime.InteropServices;
 namespace Vibrator_Controller {
     public class VibratorController : MelonMod {
 
-        private static bool useActionMenu = false;
+        private static bool _useActionMenu = false;
         public static int buttonStep;
-        private static GameObject quickMenu { get; set; }
+        private static GameObject QuickMenu { get; set; }
         public static TabButton TabButton { get; private set; }
-        private static ToggleButton search;
-        private static Label networkStatus;
-        private static Label buttplugError;
+        private static ToggleButton _search;
+        private static Label _networkStatus;
+        private static Label _buttplugError;
 
-        private static MelonPreferences_Category vibratorController;
-        private static ButtplugClient bpClient;
+        private static MelonPreferences_Category _vibratorController;
+        private static ButtplugClient _bpClient;
 
 
         public static AssetBundle iconsAssetBundle;
         public static Texture2D logo;
-        public static int[] available_purcent = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
-        public static Dictionary<int, Texture2D> purcent_icons = new Dictionary<int, Texture2D>();
-        public static string[] available_toys = { "Ambi", "Osci", "Edge", "Domi", "Hush", "Nora", "Lush", "Max", "Diamo" };
-        public static Dictionary<string, Texture2D> toy_icons = new Dictionary<string, Texture2D>();
+        public static int[] availablePurcent = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 };
+        public static Dictionary<int, Texture2D> purcentIcons = new Dictionary<int, Texture2D>();
+        public static string[] availableToys = { "Ambi", "Osci", "Edge", "Domi", "Hush", "Nora", "Lush", "Max", "Diamo" };
+        public static Dictionary<string, Texture2D> toyIcons = new Dictionary<string, Texture2D>();
 
-        public static bool VGBPresent = false;
+        public static bool vgbPresent = false;
 
         //https://gitlab.com/jacefax/vibegoesbrrr/-/blob/master/VibeGoesBrrrMod.cs#L27
         public static class NativeMethods
@@ -102,18 +102,18 @@ namespace Vibrator_Controller {
                 logo = iconsAssetBundle.LoadAsset_Internal("Assets/logo.png", Il2CppType.Of<Texture2D>()).Cast<Texture2D>();
                 logo.hideFlags |= HideFlags.DontUnloadUnusedAsset;
 
-                foreach (string toy_name in available_toys)
+                foreach (string toyName in availableToys)
                 {
-                    var logo = iconsAssetBundle.LoadAsset_Internal($"Assets/{toy_name.ToLower()}-x64.png", Il2CppType.Of<Texture2D>()).Cast<Texture2D>();
+                    var logo = iconsAssetBundle.LoadAsset_Internal($"Assets/{toyName.ToLower()}-x64.png", Il2CppType.Of<Texture2D>()).Cast<Texture2D>();
                     logo.hideFlags |= HideFlags.DontUnloadUnusedAsset;
-                    toy_icons.Add(toy_name, logo);
+                    toyIcons.Add(toyName, logo);
                 }
 
-                foreach (int purcent in available_purcent)
+                foreach (int purcent in availablePurcent)
                 {
                     var logo = iconsAssetBundle.LoadAsset_Internal($"Assets/{purcent}.png", Il2CppType.Of<Texture2D>()).Cast<Texture2D>();
                     logo.hideFlags |= HideFlags.DontUnloadUnusedAsset;
-                    purcent_icons.Add(purcent, logo);
+                    purcentIcons.Add(purcent, logo);
                 }
             }
             catch (Exception e)
@@ -133,15 +133,15 @@ namespace Vibrator_Controller {
             
             NativeMethods.LoadUnmanagedLibraryFromResource(Assembly.GetExecutingAssembly(), "Vibrator_Controller.buttplug_rs_ffi.dll", "buttplug_rs_ffi.dll");
 
-            vibratorController = MelonPreferences.CreateCategory("VibratorController");
+            _vibratorController = MelonPreferences.CreateCategory("VibratorController");
 
-            MelonPreferences.CreateEntry(vibratorController.Identifier, "ActionMenu", true, "action menu integration");
-            MelonPreferences.CreateEntry(vibratorController.Identifier, "buttonStep", 5, "What % to change when pressing button");
+            MelonPreferences.CreateEntry(_vibratorController.Identifier, "ActionMenu", true, "action menu integration");
+            MelonPreferences.CreateEntry(_vibratorController.Identifier, "buttonStep", 5, "What % to change when pressing button");
 
-            useActionMenu = MelonPreferences.GetEntryValue<bool>(vibratorController.Identifier, "ActionMenu");
-            buttonStep = MelonPreferences.GetEntryValue<int>(vibratorController.Identifier, "buttonStep");
+            _useActionMenu = MelonPreferences.GetEntryValue<bool>(_vibratorController.Identifier, "ActionMenu");
+            buttonStep = MelonPreferences.GetEntryValue<int>(_vibratorController.Identifier, "buttonStep");
 
-            if (useActionMenu && MelonHandler.Mods.Any(mod => mod.Info.Name == "ActionMenuApi")) {
+            if (_useActionMenu && MelonHandler.Mods.Any(mod => mod.Info.Name == "ActionMenuApi")) {
                 try {
                     new ToyActionMenu(LoggerInstance);
                 } catch (Exception) {
@@ -149,68 +149,68 @@ namespace Vibrator_Controller {
                 }
             }
 
-            VRCWSIntegration.Init(this);
+            VrcwsIntegration.Init(this);
             MelonCoroutines.Start(UiManagerInitializer());
             CreateButton();
 
-            VRCUtils.OnUiManagerInit += createMenu;
+            VRCUtils.OnUiManagerInit += CreateMenu;
         }
 
         public IEnumerator UiManagerInitializer() {
             while (VRCUiManager.prop_VRCUiManager_0 == null) yield return null;
 
-            quickMenu = GameObject.Find("UserInterface/Canvas_QuickMenu(Clone)");
+            QuickMenu = GameObject.Find("UserInterface/Canvas_QuickMenu(Clone)");
 
             NetworkManagerHooks.Initialize();
-            NetworkManagerHooks.OnLeave += onPlayerLeft;
+            NetworkManagerHooks.OnLeave += OnPlayerLeft;
         }
 
         private void CreateButton() {
             ExpansionKitApi.GetExpandedMenu(ExpandedMenu.UserQuickMenu).AddSimpleButton("Get\nToys", () => {
                 string name = GameObject.Find("UserInterface/Canvas_QuickMenu(Clone)/Container/Window/QMParent/Menu_SelectedUser_Local").GetComponent<VRC.UI.Elements.Menus.SelectedUserMenuQM>().field_Private_IUser_0.prop_String_0;
-                VRCWSIntegration.SendMessage(new VibratorControllerMessage(name, Commands.GetToys));
+                VrcwsIntegration.SendMessage(new VibratorControllerMessage(name, Commands.GetToys));
             });
 
         }
 
-        private void onPlayerLeft(Player obj) {
-            foreach (RemoteToy toy in Toys.remoteToys.Where(x=>x.Value.connectedTo == obj.prop_String_0).Select(x=>x.Value)) {
-                toy.disable();
+        private void OnPlayerLeft(Player obj) {
+            foreach (RemoteToy toy in Toys.RemoteToys.Where(x=>x.Value.connectedTo == obj.prop_String_0).Select(x=>x.Value)) {
+                toy.Disable();
             }
         }
 
-        internal void createMenu()
+        internal void CreateMenu()
         {
             LoggerInstance.Msg("Creating BP client");
-            SetupBP();
+            SetupBp();
 
             LoggerInstance.Msg("Creating Menu");
-            search = new ToggleButton((state) =>
+            _search = new ToggleButton((state) =>
             {
                 if (state)
                 {
-                    search.Text = "Scanning...";
-                    bpClient.StartScanningAsync();
+                    _search.Text = "Scanning...";
+                    _bpClient.StartScanningAsync();
                 }
                 else
                 {
-                    search.Text = "Scan for toys";
-                    bpClient.StopScanningAsync();
+                    _search.Text = "Scan for toys";
+                    _bpClient.StopScanningAsync();
                 }
             },
             CreateSpriteFromTexture2D(logo), null, "Scan for toys", "BPToggle", "Scan for connected toys", "Scaning for connected toys");
-            networkStatus = new Label("Network", Client.ClientAvailable() ? "Connected" : "Not\nConnected", "networkstatus");
-            networkStatus.TextComponent.fontSize = 24;
-            buttplugError = new Label("Buttplug", "No Error", "status");
-            buttplugError.TextComponent.fontSize = 24;
+            _networkStatus = new Label("Network", Client.ClientAvailable() ? "Connected" : "Not\nConnected", "networkstatus");
+            _networkStatus.TextComponent.fontSize = 24;
+            _buttplugError = new Label("Buttplug", "No Error", "status");
+            _buttplugError.TextComponent.fontSize = 24;
             Client.GetClient().ConnectRecieved += async() => {
                 await AsyncUtils.YieldToMainThread();
-                networkStatus.SubtitleText = Client.ClientAvailable() ? "Connected" : "Not\nConnected"; 
+                _networkStatus.SubtitleText = Client.ClientAvailable() ? "Connected" : "Not\nConnected"; 
             };
             TabButton = new TabButton(CreateSpriteFromTexture2D(logo), "Vibrator Controller", "VibratorControllerMenu", "Vibrator Controller", "Vibrator Controller Menu");
             TabButton.SubMenu
               .AddButtonGroup(new ButtonGroup("ControlsGrp", "Controls", new List<IButtonGroupElement>()
-              {search, networkStatus, buttplugError
+              {_search, _networkStatus, _buttplugError
             }));
 
             //Control all toys (vibrate only)
@@ -229,118 +229,118 @@ namespace Vibrator_Controller {
             return Sprite.CreateSprite(texture, size, pivot, 100, 0, SpriteMeshType.Tight, Vector4.zero, false);
         }
 
-        private void SetupBP() {
-            bpClient = new ButtplugClient("VRCVibratorController");
-            bpClient.ConnectAsync(new ButtplugEmbeddedConnectorOptions());
-            bpClient.DeviceAdded += async(object aObj, DeviceAddedEventArgs args) => {
+        private void SetupBp() {
+            _bpClient = new ButtplugClient("VRCVibratorController");
+            _bpClient.ConnectAsync(new ButtplugEmbeddedConnectorOptions());
+            _bpClient.DeviceAdded += async(object aObj, DeviceAddedEventArgs args) => {
                 await AsyncUtils.YieldToMainThread();
                 new ButtplugToy(args.Device, TabButton.SubMenu, LoggerInstance);
             };
             
-            bpClient.DeviceRemoved += async(object aObj, DeviceRemovedEventArgs args) => {
+            _bpClient.DeviceRemoved += async(object aObj, DeviceRemovedEventArgs args) => {
                 await AsyncUtils.YieldToMainThread();
-                if (Toys.myToys.ContainsKey(args.Device.Index))
+                if (Toys.MyToys.ContainsKey(args.Device.Index))
                 {
-                    Toys.myToys[args.Device.Index].disable();
+                    Toys.MyToys[args.Device.Index].Disable();
                 }
             };
 
-            bpClient.ErrorReceived += async(object aObj, ButtplugExceptionEventArgs args) =>
+            _bpClient.ErrorReceived += async(object aObj, ButtplugExceptionEventArgs args) =>
             {
                 LoggerInstance.Msg($"Buttplug Client received error: {args.Exception.Message}");
                 await AsyncUtils.YieldToMainThread();
 
-                buttplugError.SubtitleText = "Error occurred";
+                _buttplugError.SubtitleText = "Error occurred";
             };
         }
 
         public override void OnUpdate() {
             
 
-            foreach (Toys toy in Toys.allToys) {
-                if (toy.hand == Hand.shared || toy.hand == Hand.none || toy.hand == Hand.actionmenu) return;
+            foreach (Toys toy in Toys.AllToys) {
+                if (toy.hand == Hand.Shared || toy.hand == Hand.None || toy.hand == Hand.Actionmenu) return;
                 
-                if (menuOpen()) return;
+                if (MenuOpen()) return;
 
                 int left = (int)(toy.maxSpeed * Input.GetAxis("Oculus_CrossPlatform_PrimaryIndexTrigger"));
                 int right = (int)(toy.maxSpeed * Input.GetAxis("Oculus_CrossPlatform_SecondaryIndexTrigger"));
 
                 switch (toy.hand) {
-                    case Hand.left:
+                    case Hand.Left:
                         right = left;
                         break;
-                    case Hand.right:
+                    case Hand.Right:
                         left = right;
                         break;
-                    case Hand.either:
+                    case Hand.Either:
                         if (left > right) right = left;
                         else left = right;
                         break;
-                    case Hand.both:
+                    case Hand.Both:
                         break;
                 }
                 if (toy.supportsTwoVibrators) {
-                    toy.setEdgeSpeed(right);
+                    toy.SetEdgeSpeed(right);
                 }
-                toy.setSpeed(left);
+                toy.SetSpeed(left);
             }
         }
 
         //message from server
-        internal async void message(VibratorControllerMessage msg, string userID) {
+        internal async void Message(VibratorControllerMessage msg, string userId) {
             await AsyncUtils.YieldToMainThread();
 
             switch (msg.Command)
             {
                 case Commands.GetToys:
-                    handleGetToys(userID);
+                    HandleGetToys(userId);
                     break;
                 case Commands.ToyUpdate:
-                    handleToyUpdate(msg, userID);
+                    HandleToyUpdate(msg, userId);
                     break;
                 case Commands.SetSpeeds:
-                    handleSetSpeeds(msg);
+                    HandleSetSpeeds(msg);
                     break;
             }
         }
 
-        private void handleSetSpeeds(VibratorControllerMessage msg)
+        private void HandleSetSpeeds(VibratorControllerMessage msg)
         {
             foreach (var toymessage in msg.messages.Select(x => x.Value))
             {
-                if (!Toys.myToys.ContainsKey(toymessage.ToyID))
+                if (!Toys.MyToys.ContainsKey(toymessage.ToyId))
                     continue;
 
-                Toys toy = Toys.myToys[toymessage.ToyID];
+                Toys toy = Toys.MyToys[toymessage.ToyId];
 
                 switch (toymessage.Command)
                 {
                     //Local toy commands
                     case Commands.SetSpeed:
-                        if (toy?.hand == Hand.shared)
-                            toy?.setSpeed(toymessage.Strength);
+                        if (toy?.hand == Hand.Shared)
+                            toy?.SetSpeed(toymessage.Strength);
 
                         break;
                     case Commands.SetSpeedEdge:
-                        if (toy?.hand == Hand.shared)
-                            toy?.setEdgeSpeed(toymessage.Strength);
+                        if (toy?.hand == Hand.Shared)
+                            toy?.SetEdgeSpeed(toymessage.Strength);
 
                         break;
                     case Commands.SetAir:
-                        if (toy?.hand == Hand.shared)
-                            toy?.setContraction(toymessage.Strength);
+                        if (toy?.hand == Hand.Shared)
+                            toy?.SetContraction(toymessage.Strength);
 
                         break;
                     case Commands.SetRotate:
-                        if (toy?.hand == Hand.shared)
-                            toy?.rotate();
+                        if (toy?.hand == Hand.Shared)
+                            toy?.Rotate();
 
                         break;
                 }
             }
         }
 
-        private void handleToyUpdate(VibratorControllerMessage msg, string userID)
+        private void HandleToyUpdate(VibratorControllerMessage msg, string userId)
         {
             foreach (var toy in msg.messages.Select(x => x.Value))
             {
@@ -350,44 +350,44 @@ namespace Vibrator_Controller {
                     //remote toy commands
                     case Commands.AddToy:
 
-                        LoggerInstance.Msg($"Adding : {toy.ToyName} : {toy.ToyID}");
-                        new RemoteToy(toy.ToyName, toy.ToyID, userID, toy.ToyMaxSpeed, toy.ToyMaxSpeed2, toy.ToyMaxLinear, toy.ToySupportsRotate, TabButton.SubMenu, LoggerInstance);
+                        LoggerInstance.Msg($"Adding : {toy.ToyName} : {toy.ToyId}");
+                        new RemoteToy(toy.ToyName, toy.ToyId, userId, toy.ToyMaxSpeed, toy.ToyMaxSpeed2, toy.ToyMaxLinear, toy.ToySupportsRotate, TabButton.SubMenu, LoggerInstance);
 
                         break;
                     case Commands.RemoveToy:
 
-                        if (Toys.remoteToys.ContainsKey(toy.ToyID))
-                            Toys.remoteToys[toy.ToyID].disable();
+                        if (Toys.RemoteToys.ContainsKey(toy.ToyId))
+                            Toys.RemoteToys[toy.ToyId].Disable();
                         break;
                 }
             }
         }
 
-        private void handleGetToys(string userID)
+        private void HandleGetToys(string userId)
         {
             LoggerInstance.Msg("Control Client requested toys");
             VibratorControllerMessage messageToSend = null;
-            foreach (KeyValuePair<ulong, ButtplugToy> entry in Toys.myToys.Where(x => x.Value.hand == Hand.shared))
+            foreach (KeyValuePair<ulong, ButtplugToy> entry in Toys.MyToys.Where(x => x.Value.hand == Hand.Shared))
             {
-                entry.Value.connectedTo = userID;
+                entry.Value.connectedTo = userId;
                 if (messageToSend == null)
-                    messageToSend = new VibratorControllerMessage(userID, Commands.AddToy, entry.Value);
+                    messageToSend = new VibratorControllerMessage(userId, Commands.AddToy, entry.Value);
                 else
-                    messageToSend.Merge(new VibratorControllerMessage(userID, Commands.AddToy, entry.Value));
+                    messageToSend.Merge(new VibratorControllerMessage(userId, Commands.AddToy, entry.Value));
 
             }
 
             if (messageToSend != null)
-                VRCWSIntegration.SendMessage(messageToSend);
+                VrcwsIntegration.SendMessage(messageToSend);
         }
 
-        private static bool menuOpen() {
-            if (quickMenu == null) {
-                quickMenu = GameObject.Find("UserInterface/Canvas_QuickMenu(Clone)");
+        private static bool MenuOpen() {
+            if (QuickMenu == null) {
+                QuickMenu = GameObject.Find("UserInterface/Canvas_QuickMenu(Clone)");
                 return true;
             }
 
-            if (quickMenu.activeSelf) {
+            if (QuickMenu.activeSelf) {
                 return true;
             }
                 

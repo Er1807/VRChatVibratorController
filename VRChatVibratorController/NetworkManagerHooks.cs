@@ -7,9 +7,9 @@ namespace Friend_Notes
 {
     public static class NetworkManagerHooks
     {
-        private static bool IsInitialized;
-        private static bool SeenFire;
-        private static bool AFiredFirst;
+        private static bool _isInitialized;
+        private static bool _seenFire;
+        private static bool _aFiredFirst;
 
         public static event Action<Player> OnJoin;
 
@@ -17,33 +17,33 @@ namespace Friend_Notes
 
         public static void EventHandlerA(Player player)
         {
-            if (!SeenFire)
+            if (!_seenFire)
             {
-                AFiredFirst = true;
-                SeenFire = true;
+                _aFiredFirst = true;
+                _seenFire = true;
 
                 MelonLogger.Msg("A fired first");
             }
 
-            (AFiredFirst ? OnJoin : OnLeave)?.Invoke(player);
+            (_aFiredFirst ? OnJoin : OnLeave)?.Invoke(player);
         }
 
         public static void EventHandlerB(Player player)
         {
-            if (!SeenFire)
+            if (!_seenFire)
             {
-                AFiredFirst = false;
-                SeenFire = true;
+                _aFiredFirst = false;
+                _seenFire = true;
 
                 MelonLogger.Msg("B fired first");
             }
 
-            (AFiredFirst ? OnLeave : OnJoin)?.Invoke(player);
+            (_aFiredFirst ? OnLeave : OnJoin)?.Invoke(player);
         }
 
         public static void Initialize()
         {
-            if (IsInitialized) return;
+            if (_isInitialized) return;
             if (ReferenceEquals(NetworkManager.field_Internal_Static_NetworkManager_0, null)) return;
 
             var field0 = NetworkManager.field_Internal_Static_NetworkManager_0.field_Internal_VRCEventDelegate_1_Player_0;
@@ -52,7 +52,7 @@ namespace Friend_Notes
             AddDelegate(field0, EventHandlerA);
             AddDelegate(field1, EventHandlerB);
 
-            IsInitialized = true;
+            _isInitialized = true;
         }
 
         private static void AddDelegate(VRCEventDelegate<Player> field, Action<Player> eventHandlerA)

@@ -14,7 +14,7 @@ namespace Vibrator_Controller {
     public class ToyMessage
     {
         public Commands Command { get; set; }
-        public ulong ToyID { get; set; }
+        public ulong ToyId { get; set; }
         public string ToyName { get; set; }
         public int Strength { get; set; }
         public int ToyMaxSpeed { get; set; }
@@ -36,7 +36,7 @@ namespace Vibrator_Controller {
             messages[toy.id + ":" + command] = new ToyMessage()
             {
                 Command = command,
-                ToyID = toy.id,
+                ToyId = toy.id,
                 ToyName = toy.name,
                 ToyMaxSpeed = toy.maxSpeed,
                 ToyMaxSpeed2 = toy.maxSpeed2,
@@ -51,7 +51,7 @@ namespace Vibrator_Controller {
             messages[toy.id +":"+ command] = new ToyMessage()
             {
                 Command = command,
-                ToyID = toy.id,
+                ToyId = toy.id,
                 ToyName = toy.name,
                 Strength = strength
             };
@@ -72,53 +72,53 @@ namespace Vibrator_Controller {
         }
 
     }
-    public class VRCWSIntegration {
+    public class VrcwsIntegration {
 
-        private static Client client;
-        private static MelonPreferences_Entry<bool> onlyTrusted;
+        private static Client _client;
+        private static MelonPreferences_Entry<bool> _onlyTrusted;
 
-        private static VibratorController vibratorController;
-        private static Dictionary<string, VibratorControllerMessage> messagesToSendPerTarget = new Dictionary<string, VibratorControllerMessage>();
+        private static VibratorController _vibratorController;
+        private static Dictionary<string, VibratorControllerMessage> _messagesToSendPerTarget = new Dictionary<string, VibratorControllerMessage>();
 
 
         public static void Init(VibratorController controller) {
             var category = MelonPreferences.CreateCategory("VibratorController");
-            onlyTrusted = category.CreateEntry("Only Trusted", false);
+            _onlyTrusted = category.CreateEntry("Only Trusted", false);
             MelonCoroutines.Start(LoadClient());
             Timer timer = new Timer(200);
             timer.Elapsed += (_,__) => {
-                if (client == null)
+                if (_client == null)
                     return;
 
-                lock (messagesToSendPerTarget)
+                lock (_messagesToSendPerTarget)
                 {
-                    foreach (var message in messagesToSendPerTarget)
+                    foreach (var message in _messagesToSendPerTarget)
                     {
-                        client.Send(new Message() { Method = "VibratorControllerMessage", Target = message.Value.Target, Content = JsonConvert.SerializeObject(message.Value) });
+                        _client.Send(new Message() { Method = "VibratorControllerMessage", Target = message.Value.Target, Content = JsonConvert.SerializeObject(message.Value) });
                     }
-                    messagesToSendPerTarget.Clear();
+                    _messagesToSendPerTarget.Clear();
                 }
             };
             timer.Enabled = true;
-            vibratorController = controller;
+            _vibratorController = controller;
         }
 
         public static void SendMessage(VibratorControllerMessage message) {
-            if (client == null || message.Target == null)
+            if (_client == null || message.Target == null)
                 return;
             if (message.Command == Commands.SetSpeeds)
             {
-                lock (messagesToSendPerTarget)
+                lock (_messagesToSendPerTarget)
                 {
-                    if (messagesToSendPerTarget.ContainsKey(message.Target))
-                        messagesToSendPerTarget[message.Target].Merge(message);
+                    if (_messagesToSendPerTarget.ContainsKey(message.Target))
+                        _messagesToSendPerTarget[message.Target].Merge(message);
                     else
-                        messagesToSendPerTarget[message.Target] = message;
+                        _messagesToSendPerTarget[message.Target] = message;
                 }
                 return;
             }
 
-            client.Send(new Message() { Method = "VibratorControllerMessage", Target = message.Target, Content = JsonConvert.SerializeObject(message) });
+            _client.Send(new Message() { Method = "VibratorControllerMessage", Target = message.Target, Content = JsonConvert.SerializeObject(message) });
         }
 
         private static IEnumerator LoadClient() {
@@ -126,29 +126,29 @@ namespace Vibrator_Controller {
                 yield return null;
 
 
-            client = Client.GetClient();
+            _client = Client.GetClient();
 
-            onlyTrusted.OnValueChanged += (_, newValue) => {
-                client.RemoveEvent("VibratorControllerMessage");
-                client.RegisterEvent("VibratorControllerMessage", EventCall, signatureRequired: newValue);
+            _onlyTrusted.OnValueChanged += (_, newValue) => {
+                _client.RemoveEvent("VibratorControllerMessage");
+                _client.RegisterEvent("VibratorControllerMessage", EventCall, signatureRequired: newValue);
             };
 
 
-            client.RegisterEvent("VibratorControllerMessage", EventCall, signatureRequired: onlyTrusted.Value);
+            _client.RegisterEvent("VibratorControllerMessage", EventCall, signatureRequired: _onlyTrusted.Value);
 
         }
 
-        private static long lastTick = 0;
+        private static long _lastTick = 0;
 
         private static void EventCall(Message msg) {
             //MelonLogger.Msg($"VibratorControllerMessage recieved");
             //MelonLogger.Msg(msg);
 
-            if (msg.TimeStamp.Ticks > lastTick) {
-                lastTick = msg.TimeStamp.Ticks; 
+            if (msg.TimeStamp.Ticks > _lastTick) {
+                _lastTick = msg.TimeStamp.Ticks; 
                 var messagecontent = msg.GetContentAs<VibratorControllerMessage>();
                 if(messagecontent != null)
-                    vibratorController.message(messagecontent, msg.Target);
+                    _vibratorController.Message(messagecontent, msg.Target);
             }
         }
 
