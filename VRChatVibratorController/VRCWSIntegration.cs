@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using System.Collections;
 using System.Collections.Generic;
 using System.Timers;
+using VRC.UI;
 using VRCWSLibary;
 
 namespace Vibrator_Controller {
@@ -76,10 +77,11 @@ namespace Vibrator_Controller {
         private static Client client;
         private static MelonPreferences_Entry<bool> onlyTrusted;
 
+        private static VibratorController vibratorController;
         private static Dictionary<string, VibratorControllerMessage> messagesToSendPerTarget = new Dictionary<string, VibratorControllerMessage>();
 
 
-        public static void Init() {
+        public static void Init(VibratorController controller) {
             var category = MelonPreferences.CreateCategory("VibratorController");
             onlyTrusted = category.CreateEntry("Only Trusted", false);
             MelonCoroutines.Start(LoadClient());
@@ -98,6 +100,7 @@ namespace Vibrator_Controller {
                 }
             };
             timer.Enabled = true;
+            vibratorController = controller;
         }
 
         public static void SendMessage(VibratorControllerMessage message) {
@@ -127,15 +130,11 @@ namespace Vibrator_Controller {
 
             onlyTrusted.OnValueChanged += (_, newValue) => {
                 client.RemoveEvent("VibratorControllerMessage");
-                client.RegisterEvent("VibratorControllerMessage", (msg) => {
-                    EventCall(msg);
-                }, signatureRequired: newValue);
+                client.RegisterEvent("VibratorControllerMessage", EventCall, signatureRequired: newValue);
             };
 
 
-            client.RegisterEvent("VibratorControllerMessage", (msg) => {
-                EventCall(msg);
-            }, signatureRequired: onlyTrusted.Value);
+            client.RegisterEvent("VibratorControllerMessage", EventCall, signatureRequired: onlyTrusted.Value);
 
         }
 
@@ -149,7 +148,7 @@ namespace Vibrator_Controller {
                 lastTick = msg.TimeStamp.Ticks; 
                 var messagecontent = msg.GetContentAs<VibratorControllerMessage>();
                 if(messagecontent != null)
-                    VibratorController.message(messagecontent, msg.Target);
+                    vibratorController.message(messagecontent, msg.Target);
             }
         }
 

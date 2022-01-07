@@ -8,14 +8,17 @@ using UnityEngine;
 using ActionMenuApi.Api;
 
 namespace Vibrator_Controller {
-    class ToyActionMenu {
+    public class ToyActionMenu {
+        private MelonLogger.Instance LoggerInstance;
 
 
-        internal ToyActionMenu() {
+        public ToyActionMenu(MelonLogger.Instance LoggerInstance)
+        {
+            this.LoggerInstance = LoggerInstance;
             SetupButtons();
         }
 
-        private static void SetupButtons() {
+        private void SetupButtons() {
             VRCActionMenuPage.AddSubMenu(ActionMenuPage.Main, "Vibrator Controller", delegate {
                 foreach (Toys toy in Toys.allToys)
                 {
@@ -25,7 +28,7 @@ namespace Vibrator_Controller {
                     }
                     catch (Exception e)
                     {
-                        MelonLogger.Warning($"Error with toy {toy.name}: " + e.Message);
+                        LoggerInstance.Warning($"Error with toy {toy.name}: " + e.Message);
                     }
                 }
             }, VibratorController.logo);

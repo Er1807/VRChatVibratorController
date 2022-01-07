@@ -23,7 +23,7 @@ using System.Runtime.InteropServices;
 [assembly: MelonAdditionalDependencies("UIExpansionKit", "VRCWSLibary", "VRChatUtilityKit")]
 
 namespace Vibrator_Controller {
-    internal class VibratorController : MelonMod {
+    public class VibratorController : MelonMod {
 
         private static bool useActionMenu = false;
         public static int buttonStep;
@@ -47,7 +47,7 @@ namespace Vibrator_Controller {
         public static bool VGBPresent = false;
 
         //https://gitlab.com/jacefax/vibegoesbrrr/-/blob/master/VibeGoesBrrrMod.cs#L27
-        static public class NativeMethods
+        public static class NativeMethods
         {
             public static string TempPath
             {
@@ -126,7 +126,7 @@ namespace Vibrator_Controller {
         {
             if (MelonHandler.Mods.Any(mod => mod.Info.Name == "VibeGoesBrrr"))
             {
-                MelonLogger.Warning("VibeGoesBrrr detected. Disabling Vibrator Controller since these mods are incompatible");
+                LoggerInstance.Warning("VibeGoesBrrr detected. Disabling Vibrator Controller since these mods are incompatible");
                 return;
             }
 
@@ -143,13 +143,13 @@ namespace Vibrator_Controller {
 
             if (useActionMenu && MelonHandler.Mods.Any(mod => mod.Info.Name == "ActionMenuApi")) {
                 try {
-                    new ToyActionMenu();
+                    new ToyActionMenu(LoggerInstance);
                 } catch (Exception) {
-                    MelonLogger.Warning("Failed to add action menu button");
+                    LoggerInstance.Warning("Failed to add action menu button");
                 }
             }
 
-            VRCWSIntegration.Init();
+            VRCWSIntegration.Init(this);
             MelonCoroutines.Start(UiManagerInitializer());
             CreateButton();
 
@@ -179,12 +179,12 @@ namespace Vibrator_Controller {
             }
         }
 
-        internal static void createMenu()
+        internal void createMenu()
         {
-            MelonLogger.Msg("Creating BP client");
+            LoggerInstance.Msg("Creating BP client");
             SetupBP();
 
-            MelonLogger.Msg("Creating Menu");
+            LoggerInstance.Msg("Creating Menu");
             search = new ToggleButton((state) =>
             {
                 if (state)
@@ -214,7 +214,7 @@ namespace Vibrator_Controller {
             }));
 
             //Control all toys (vibrate only)
-            new AllControlToy(TabButton.SubMenu);
+            new AllControlToy(TabButton.SubMenu, LoggerInstance);
 
             //activate scroll
             TabButton.SubMenu.ToggleScrollbar(true);
@@ -229,12 +229,12 @@ namespace Vibrator_Controller {
             return Sprite.CreateSprite(texture, size, pivot, 100, 0, SpriteMeshType.Tight, Vector4.zero, false);
         }
 
-        private static void SetupBP() {
+        private void SetupBP() {
             bpClient = new ButtplugClient("VRCVibratorController");
             bpClient.ConnectAsync(new ButtplugEmbeddedConnectorOptions());
             bpClient.DeviceAdded += async(object aObj, DeviceAddedEventArgs args) => {
                 await AsyncUtils.YieldToMainThread();
-                new ButtplugToy(args.Device, TabButton.SubMenu);
+                new ButtplugToy(args.Device, TabButton.SubMenu, LoggerInstance);
             };
             
             bpClient.DeviceRemoved += async(object aObj, DeviceRemovedEventArgs args) => {
@@ -247,7 +247,7 @@ namespace Vibrator_Controller {
 
             bpClient.ErrorReceived += async(object aObj, ButtplugExceptionEventArgs args) =>
             {
-                MelonLogger.Msg($"Buttplug Client received error: {args.Exception.Message}");
+                LoggerInstance.Msg($"Buttplug Client received error: {args.Exception.Message}");
                 await AsyncUtils.YieldToMainThread();
 
                 buttplugError.SubtitleText = "Error occurred";
@@ -287,7 +287,7 @@ namespace Vibrator_Controller {
         }
 
         //message from server
-        internal static async void message(VibratorControllerMessage msg, string userID) {
+        internal async void message(VibratorControllerMessage msg, string userID) {
             await AsyncUtils.YieldToMainThread();
 
             switch (msg.Command)
@@ -304,7 +304,7 @@ namespace Vibrator_Controller {
             }
         }
 
-        private static void handleSetSpeeds(VibratorControllerMessage msg)
+        private void handleSetSpeeds(VibratorControllerMessage msg)
         {
             foreach (var toymessage in msg.messages.Select(x => x.Value))
             {
@@ -340,7 +340,7 @@ namespace Vibrator_Controller {
             }
         }
 
-        private static void handleToyUpdate(VibratorControllerMessage msg, string userID)
+        private void handleToyUpdate(VibratorControllerMessage msg, string userID)
         {
             foreach (var toy in msg.messages.Select(x => x.Value))
             {
@@ -350,8 +350,8 @@ namespace Vibrator_Controller {
                     //remote toy commands
                     case Commands.AddToy:
 
-                        MelonLogger.Msg($"Adding : {toy.ToyName} : {toy.ToyID}");
-                        new RemoteToy(toy.ToyName, toy.ToyID, userID, toy.ToyMaxSpeed, toy.ToyMaxSpeed2, toy.ToyMaxLinear, toy.ToySupportsRotate, TabButton.SubMenu);
+                        LoggerInstance.Msg($"Adding : {toy.ToyName} : {toy.ToyID}");
+                        new RemoteToy(toy.ToyName, toy.ToyID, userID, toy.ToyMaxSpeed, toy.ToyMaxSpeed2, toy.ToyMaxLinear, toy.ToySupportsRotate, TabButton.SubMenu, LoggerInstance);
 
                         break;
                     case Commands.RemoveToy:
@@ -363,9 +363,9 @@ namespace Vibrator_Controller {
             }
         }
 
-        private static void handleGetToys(string userID)
+        private void handleGetToys(string userID)
         {
-            MelonLogger.Msg("Control Client requested toys");
+            LoggerInstance.Msg("Control Client requested toys");
             VibratorControllerMessage messageToSend = null;
             foreach (KeyValuePair<ulong, ButtplugToy> entry in Toys.myToys.Where(x => x.Value.hand == Hand.shared))
             {

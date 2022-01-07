@@ -30,9 +30,16 @@ namespace Vibrator_Controller {
 
     public abstract class Toys : IToy
     {
+        public Toys(MelonLogger.Instance LoggerInstance)
+        {
+            this.LoggerInstance = LoggerInstance;
+        }
+
         internal static Dictionary<ulong, RemoteToy> remoteToys { get; set; } = new Dictionary<ulong, RemoteToy>();
         internal static Dictionary<ulong, ButtplugToy> myToys { get; set; } = new Dictionary<ulong, ButtplugToy>();
         internal static List<Toys> allToys => remoteToys.Select(x => x.Value as Toys).Union(myToys.Select(x => x.Value as Toys)).ToList();
+
+        public MelonLogger.Instance LoggerInstance { get; }
 
         internal SingleButton changeMode;
         internal SingleButton inc;
@@ -96,7 +103,7 @@ namespace Vibrator_Controller {
             if (isActive)
             {
                 isActive = false;
-                MelonLogger.Msg("Disabled toy: " + name);
+                LoggerInstance.Msg("Disabled toy: " + name);
                 hand = Hand.none;
                 toys.rectTransform.gameObject.active = false;
                 toys.Header.gameObject.active = false;
@@ -116,7 +123,7 @@ namespace Vibrator_Controller {
                 enableInternal();
 
                 
-                MelonLogger.Msg("Enabled toy: " + name);
+                LoggerInstance.Msg("Enabled toy: " + name);
             }
         }
 
@@ -167,7 +174,7 @@ namespace Vibrator_Controller {
         public string connectedTo;
         public ButtplugClientDevice device;
 
-        internal ButtplugToy(ButtplugClientDevice device, SubMenu menu)
+        internal ButtplugToy(ButtplugClientDevice device, SubMenu menu, MelonLogger.Instance LoggerInstance) : base(LoggerInstance)
         {
             this.menu = menu;
             id = (device.Index + (ulong)Player.prop_Player_0.prop_String_0.GetHashCode()) % long.MaxValue;
@@ -180,7 +187,7 @@ namespace Vibrator_Controller {
 
             if (myToys.ContainsKey(id))
             {
-                MelonLogger.Msg("Device reconnected: " + name + " [" + id + "]");
+                LoggerInstance.Msg("Device reconnected: " + name + " [" + id + "]");
                 myToys[id].name = name; //id should be uniquie but just to be sure
                 myToys[id].device = device;
                 myToys[id].enable();
@@ -189,7 +196,7 @@ namespace Vibrator_Controller {
 
 
 
-            MelonLogger.Msg("Device connected: " + name + " [" + id + "]");
+            LoggerInstance.Msg("Device connected: " + name + " [" + id + "]");
 
             if (device.AllowedMessages.ContainsKey(ServerMessage.Types.MessageAttributeType.LinearCmd))
                 supportsLinear = true;
@@ -207,18 +214,18 @@ namespace Vibrator_Controller {
 
             //prints info about the device
             foreach (KeyValuePair<ServerMessage.Types.MessageAttributeType, ButtplugMessageAttributes> entry in device.AllowedMessages)
-                MelonLogger.Msg("[" + id + "] Allowed Message: " + entry.Key);
+                LoggerInstance.Msg("[" + id + "] Allowed Message: " + entry.Key);
 
             if (device.AllowedMessages.ContainsKey(ServerMessage.Types.MessageAttributeType.VibrateCmd))
             {
                 ButtplugMessageAttributes attributes = device.AllowedMessages[ServerMessage.Types.MessageAttributeType.VibrateCmd];
 
                 if (attributes.ActuatorType != null && attributes.ActuatorType.Length > 0)
-                    MelonLogger.Msg("[" + id + "] ActuatorType " + string.Join(", ", attributes.ActuatorType));
+                    LoggerInstance.Msg("[" + id + "] ActuatorType " + string.Join(", ", attributes.ActuatorType));
 
                 if (attributes.StepCount != null && attributes.StepCount.Length > 0)
                 {
-                    MelonLogger.Msg("[" + id + "] StepCount " + string.Join(", ", attributes.StepCount));
+                    LoggerInstance.Msg("[" + id + "] StepCount " + string.Join(", ", attributes.StepCount));
                     maxSpeed = (int)attributes.StepCount[0];
                 }
                 if (attributes.StepCount != null && attributes.StepCount.Length == 2)
@@ -228,14 +235,14 @@ namespace Vibrator_Controller {
                 }
 
                 if (attributes.Endpoints != null && attributes.Endpoints.Length > 0)
-                    MelonLogger.Msg("[" + id + "] Endpoints " + string.Join(", ", attributes.Endpoints));
+                    LoggerInstance.Msg("[" + id + "] Endpoints " + string.Join(", ", attributes.Endpoints));
 
                 if (attributes.MaxDuration != null && attributes.MaxDuration.Length > 0)
-                    MelonLogger.Msg("[" + id + "] MaxDuration " + string.Join(", ", attributes.MaxDuration));
+                    LoggerInstance.Msg("[" + id + "] MaxDuration " + string.Join(", ", attributes.MaxDuration));
 
                 if (attributes.Patterns != null && attributes.Patterns.Length > 0)
                     foreach (string[] pattern in attributes.Patterns)
-                        MelonLogger.Msg("[" + id + "] Pattern " + string.Join(", ", pattern));
+                        LoggerInstance.Msg("[" + id + "] Pattern " + string.Join(", ", pattern));
             }
 
             myToys.Add(id, this);
@@ -300,7 +307,7 @@ namespace Vibrator_Controller {
             }
             catch (ButtplugDeviceException)
             {
-                MelonLogger.Error("Toy not connected");
+                LoggerInstance.Error("Toy not connected");
             }
         }
 
@@ -313,7 +320,7 @@ namespace Vibrator_Controller {
             }
             catch (ButtplugDeviceException)
             {
-                MelonLogger.Error("Toy not connected");
+                LoggerInstance.Error("Toy not connected");
             }
         }
 
@@ -325,7 +332,7 @@ namespace Vibrator_Controller {
             }
             catch (ButtplugDeviceException)
             {
-                MelonLogger.Error("Toy not connected");
+                LoggerInstance.Error("Toy not connected");
             }
         }
 
@@ -341,7 +348,7 @@ namespace Vibrator_Controller {
             }
             catch (ButtplugDeviceException)
             {
-                MelonLogger.Error("Toy not connected");
+                LoggerInstance.Error("Toy not connected");
             }
         }
 
@@ -368,12 +375,12 @@ namespace Vibrator_Controller {
     public class RemoteToy : Toys
     {
         public string connectedTo;
-        internal RemoteToy(string name, ulong id, string connectedTo, int maxSpeed, int maxSpeed2, int maxLinear, bool supportsRotate, SubMenu menu)
+        internal RemoteToy(string name, ulong id, string connectedTo, int maxSpeed, int maxSpeed2, int maxLinear, bool supportsRotate, SubMenu menu, MelonLogger.Instance LoggerInstance) : base(LoggerInstance)
         {
             this.menu = menu;
             if (remoteToys.ContainsKey(id))
             {
-                MelonLogger.Msg("Device reconnected: " + name + " [" + id + "]");
+                LoggerInstance.Msg("Device reconnected: " + name + " [" + id + "]");
                 if (maxSpeed2 != -1) remoteToys[id].supportsTwoVibrators = true;
                 if (maxLinear != -1) remoteToys[id].supportsLinear = true;
                 remoteToys[id].name = name;
@@ -383,7 +390,7 @@ namespace Vibrator_Controller {
                 remoteToys[id].maxSpeed2 = maxSpeed2;
                 remoteToys[id].maxLinear = maxLinear;
                 remoteToys[id].enable();
-                MelonLogger.Msg($"Reconnected toy Name: {remoteToys[id].name}, ID: {remoteToys[id].id} Max Speed: {remoteToys[id].maxSpeed}" + (remoteToys[id].supportsTwoVibrators ? $", Max Speed 2: {remoteToys[id].maxSpeed2}" : "") + (remoteToys[id].supportsLinear ? $", Max Linear Speed: {remoteToys[id].maxLinear}" : "") + (remoteToys[id].supportsRotate ? $", Supports Rotation" : ""));
+                LoggerInstance.Msg($"Reconnected toy Name: {remoteToys[id].name}, ID: {remoteToys[id].id} Max Speed: {remoteToys[id].maxSpeed}" + (remoteToys[id].supportsTwoVibrators ? $", Max Speed 2: {remoteToys[id].maxSpeed2}" : "") + (remoteToys[id].supportsLinear ? $", Max Linear Speed: {remoteToys[id].maxLinear}" : "") + (remoteToys[id].supportsRotate ? $", Supports Rotation" : ""));
                 return;
             }
 
@@ -398,7 +405,7 @@ namespace Vibrator_Controller {
             this.connectedTo = connectedTo;
             this.id = id;
 
-            MelonLogger.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
+            LoggerInstance.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
 
             remoteToys.Add(id, this);
             createMenu();
@@ -459,7 +466,7 @@ namespace Vibrator_Controller {
 
     public class AllControlToy : Toys
     {
-        internal AllControlToy(SubMenu menu)
+        internal AllControlToy(SubMenu menu, MelonLogger.Instance LoggerInstance) : base(LoggerInstance)
         {
             this.menu = menu;
             
@@ -468,7 +475,7 @@ namespace Vibrator_Controller {
             name = "All Toys";
             id = 1000;
 
-            MelonLogger.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
+            LoggerInstance.Msg($"Added toy Name: {name}, ID: {id} Max Speed: {maxSpeed}" + (supportsTwoVibrators ? $", Max Speed 2: {maxSpeed2}" : "") + (supportsLinear ? $", Max Linear Speed: {maxLinear}" : "") + (supportsRotate ? $", Supports Rotation" : ""));
             
             createMenu();
 
